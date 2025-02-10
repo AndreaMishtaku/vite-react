@@ -3,9 +3,11 @@ import { Download, Loader2 } from "lucide-react";
 import React, { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import DataTable from "../../components/table";
+import { useToast } from "@/hooks/use-toast";
 
 const DocumentDetail = () => {
   const { id } = useParams();
+  const { toast } = useToast();
   const [documentTypeFields, setDocumentTypeFields] = useState([]);
   const [documents, setDocuments] = useState([]);
   const [pageSize, setPageSize] = useState(10);
@@ -34,8 +36,40 @@ const DocumentDetail = () => {
       setDocuments(response.data.content.data);
       setTotalRecords(response.data.content.totalElements);
     } catch (error) {
-      console.log("Error2", error);
       setIsLoading(false);
+    }
+  };
+
+  const handleDownload = async (id) => {
+    try {
+      const response = await axios.get(`docs/${id}/download`, {
+        responseType: "blob",
+      });
+
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement("a");
+      link.href = url;
+
+      const contentDisposition = response.headers["content-disposition"];
+      let filename = "downloaded_file";
+      if (contentDisposition) {
+        const match = contentDisposition.match(/filename="(.+)"/);
+        if (match && match.length > 1) {
+          filename = match[1];
+        }
+      }
+
+      link.setAttribute("download", filename);
+      document.body.appendChild(link);
+      link.click();
+
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (e) {
+      toast({
+        title: "Download failed",
+        description: error.response ? error.response.data : error.message,
+      });
     }
   };
 
@@ -63,6 +97,7 @@ const DocumentDetail = () => {
     .concat([
       { name: "fileName", type: "text" },
       { name: "updatedAt", type: "text" },
+      { name: "id", type: "int" },
     ]);
 
   const rows = documents.map((d) => {
@@ -70,6 +105,7 @@ const DocumentDetail = () => {
     return {
       fileName: d.fileName,
       updatedAt: d.updatedAt,
+      id: d.id,
       ...metadata,
     };
   });
@@ -96,9 +132,9 @@ const DocumentDetail = () => {
         actions={[
           {
             name: "download",
-            icon: <Download />,
+            icon: <Download className="cursor-pointer" />,
             onClick: (value) => {
-              console.log(value);
+              handleDownload(value.id);
             },
           },
         ]}

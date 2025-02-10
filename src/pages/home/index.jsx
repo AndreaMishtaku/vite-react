@@ -28,7 +28,9 @@ const Home = () => {
     try {
       const response = await axios.get("/document-types");
       setDocuments(
-        response.data.content.filter((document) => document.id != 1)
+        response.data.content.filter(
+          (document) => document.id != 1 && document.id != 2
+        )
       );
     } catch (e) {
       console.log(e);
@@ -39,7 +41,6 @@ const Home = () => {
     fetchDocuments();
   }, []);
 
-  console.log(documents);
   return (
     <SidebarProvider className="overflow-hidden relative">
       <AppSidebar
